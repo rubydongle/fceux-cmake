@@ -1,160 +1,66 @@
 
-if ( ${GTK} )
 message( STATUS "GUI backend: GTK")
 set( APP_NAME fceux-gtk)
-else()
-message( STATUS "GUI backend: QT")
-set( APP_NAME fceux)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
-endif()
 
-if(WIN32)
-  set(SOURCES ${SRC_CORE} ${SRC_DRIVERS_COMMON} ${SRC_DRIVERS_WIN})
-  include_directories( ${CMAKE_SOURCE_DIR}/src/drivers/win/directx ${CMAKE_SOURCE_DIR}/src/drivers/win/zlib )
-  add_definitions(
-    -DWIN32
-    -DFCEUDEF_DEBUGGER
-    -D_USE_SHARED_MEMORY_
-    -DPSS_STYLE=2
-    -DNOMINMAX
-        -D_S9XLUA_H
-  )
-  link_directories( ${CMAKE_SOURCE_DIR}/src/drivers/win/directx )
-else(WIN32)
   # Non Windows System
   # UNIX (Linux or Mac OSX)
 
-	if ( ${GLVND} )
-		message( STATUS "OpenGL preference: GLVND")
-		set (OpenGL_GL_PREFERENCE  GLVND)
-	else()
-		message( STATUS "OpenGL preference: LEGACY")
-		set (OpenGL_GL_PREFERENCE  LEGACY)
-	endif()
-
+message( STATUS "OpenGL preference: LEGACY")
+set (OpenGL_GL_PREFERENCE  LEGACY)
   # Use the built-in cmake find_package functions to find dependencies
   # Use package PkgConfig to detect headers/library what find_package cannot find.
-  find_package(PkgConfig REQUIRED)
-  find_package(OpenGL REQUIRED)
-  find_package(ZLIB REQUIRED)
+find_package(PkgConfig REQUIRED)
+find_package(OpenGL REQUIRED)
+find_package(ZLIB REQUIRED)
 
-  add_definitions( -Wall  -Wno-write-strings  -Wno-sign-compare  -Wno-parentheses  -Wno-unused-local-typedefs  -fPIC )
-  add_definitions( -DFCEUDEF_DEBUGGER )
+add_definitions( -Wall  -Wno-write-strings  -Wno-sign-compare  -Wno-parentheses  -Wno-unused-local-typedefs  -fPIC )
+add_definitions( -DFCEUDEF_DEBUGGER )
 
-  if ( ${GTK} )
-     pkg_check_modules( GTK3 REQUIRED gtk+-3.0)
-     pkg_check_modules( X11  REQUIRED x11)
-     add_definitions( ${GTK3_CFLAGS}  ${X11_CFLAGS} )
-     add_definitions( -D_GTK -DOPENGL )
-  else(${GTK})
-     find_package(Qt5 COMPONENTS Widgets OpenGL REQUIRED)
-     add_definitions( ${Qt5Widgets_DEFINITIONS}  )
-     include_directories( ${Qt5Widgets_INCLUDE_DIRS} )
-     add_definitions( -D__QT_DRIVER__  -DQT_DEPRECATED_WARNINGS )
-  endif()
+pkg_check_modules( GTK3 REQUIRED gtk+-3.0)
+pkg_check_modules( X11  REQUIRED x11)
+add_definitions( ${GTK3_CFLAGS}  ${X11_CFLAGS} )
+add_definitions( -D_GTK -DOPENGL )
 
   # Check for libminizip
-  pkg_check_modules( MINIZIP REQUIRED minizip)
+pkg_check_modules( MINIZIP REQUIRED minizip)
 
-  if ( ${MINIZIP_FOUND} )
-	  add_definitions( -D_SYSTEM_MINIZIP ${MINIZIP_CFLAGS} )
-  endif()
+if ( ${MINIZIP_FOUND} )
+  add_definitions( -D_SYSTEM_MINIZIP ${MINIZIP_CFLAGS} )
+endif()
 
-  #pkg_check_modules( GL gl) # Use built in find package instead for OpenGL
+#pkg_check_modules( GL gl) # Use built in find package instead for OpenGL
 
   # Check for OpenGL
-  if ( ${OPENGL_FOUND} )
+if ( ${OPENGL_FOUND} )
 	include_directories( ${OPENGL_INCLUDE_DIR} )
-  endif()
+endif()
 
   #pkg_check_modules( ZLIB REQUIRED zlib) # Use built in find package instead for zlib
 
   # Check for zlib
-  if ( ${ZLIB_FOUND} )
+if ( ${ZLIB_FOUND} )
 	  #add_definitions( ${ZLIB_CFLAGS} )
-	  include_directories( ${ZLIB_INCLUDE_DIRS} )
-  endif()
+  include_directories( ${ZLIB_INCLUDE_DIRS} )
+endif()
 
   # Check for SDL2
-  pkg_check_modules( SDL2 REQUIRED sdl2)
+pkg_check_modules( SDL2 REQUIRED sdl2)
 
-  if ( ${SDL2_FOUND} )
-	  add_definitions( ${SDL2_CFLAGS} )
-  endif()
+if ( ${SDL2_FOUND} )
+  add_definitions( ${SDL2_CFLAGS} )
+endif()
 
-  # Check for LUA
-  pkg_check_modules( LUA lua-5.1)
 
-  if ( ${LUA_FOUND} )
-     # Use System LUA
-	  add_definitions( -D_S9XLUA_H  ${LUA_CFLAGS} )
+add_definitions( -DHAVE_ASPRINTF ) # What system wouldn't have this?
+#add_definitions( -DCREATE_AVI    ) 
 
-	  set( LUA_ENGINE_SOURCE  ${CMAKE_CURRENT_SOURCE_DIR}/lua-engine.cpp )
-
-  else ()
-
-     # Use Internal LUA
-     add_definitions( -D_S9XLUA_H  -I${CMAKE_CURRENT_SOURCE_DIR}/lua/src )
-
-	  set( LUA_ENGINE_SOURCE  
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lapi.c 
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lauxlib.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lbaselib.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lcode.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/ldblib.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/ldebug.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/ldo.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/ldump.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lfunc.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lgc.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/linit.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/liolib.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/llex.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lmathlib.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lmem.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/loadlib.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lobject.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lopcodes.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/loslib.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lparser.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lstate.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lstring.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lstrlib.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/ltable.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/ltablib.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/ltm.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lundump.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lvm.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/lzio.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua/src/print.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/lua-engine.cpp 
-     )
-  endif()
-
-  add_definitions( -DHAVE_ASPRINTF ) # What system wouldn't have this?
-  #add_definitions( -DCREATE_AVI    ) 
-
-  if(APPLE)
-	set( OPENGL_LDFLAGS  "-framework OpenGL" )
-  else()
-	set( OPENGL_LDFLAGS  ${OPENGL_LIBRARIES} )
-  	set( SYS_LIBS  -lrt  -lpthread )
-  endif()
-
-endif(WIN32)
+set( OPENGL_LDFLAGS  ${OPENGL_LIBRARIES} )
+set( SYS_LIBS  -lrt  -lpthread )
 
 include_directories( ${CMAKE_SOURCE_DIR}/src )
 include_directories( ${CMAKE_SOURCE_DIR}/src/drivers )
 
-if(APPLE)
-  add_definitions( -DPSS_STYLE=4 )
-else(APPLE)
-  if(UNIX)
-    add_definitions( -DPSS_STYLE=1 )
-  endif(UNIX)
-endif(APPLE)
+add_definitions( -DPSS_STYLE=1 )
 
 set(SRC_CORE
 	${CMAKE_CURRENT_SOURCE_DIR}/asm.cpp
@@ -184,7 +90,7 @@ set(SRC_CORE
   	${CMAKE_CURRENT_SOURCE_DIR}/vsuni.cpp
   	${CMAKE_CURRENT_SOURCE_DIR}/wave.cpp
   	${CMAKE_CURRENT_SOURCE_DIR}/x6502.cpp
-	${LUA_ENGINE_SOURCE}
+#	${LUA_ENGINE_SOURCE}
   	${CMAKE_CURRENT_SOURCE_DIR}/boards/01-222.cpp
   	${CMAKE_CURRENT_SOURCE_DIR}/boards/09-034a.cpp
   	${CMAKE_CURRENT_SOURCE_DIR}/boards/103.cpp
@@ -401,7 +307,6 @@ set(SRC_DRIVERS_COMMON
   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/videolog/rgbtorgb.cpp
 )
 
-if ( ${GTK} )
 set(SRC_DRIVERS_SDL
   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/sdl/cheat.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/sdl/config.cpp
@@ -419,35 +324,6 @@ set(SRC_DRIVERS_SDL
   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/sdl/sdl-video.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/drivers/sdl/unix-netplay.cpp
 )
-else()
-set(SRC_DRIVERS_SDL
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/main.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/ConsoleWindow.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/ConsoleViewerGL.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/ConsoleViewerSDL.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/GamePadConf.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/HotKeyConf.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/PaletteConf.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/GuiConf.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/LuaControl.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/CheatsConf.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/HexEditor.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/ConsoleUtilities.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/ConsoleVideoConf.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/ConsoleSoundConf.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/AboutWindow.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/fceuWrapper.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/config.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/input.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/nes_shm.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/keyscan.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/sdl-sound.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/sdl-video.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/sdl-joystick.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/sdl-throttle.cpp  
-  ${CMAKE_CURRENT_SOURCE_DIR}/drivers/Qt/unix-netplay.cpp
-)
-endif()
 
 set(SOURCES ${SRC_CORE} ${SRC_DRIVERS_COMMON} ${SRC_DRIVERS_SDL})
 
@@ -458,28 +334,10 @@ add_custom_command(
 
 set_property(SOURCE ${CMAKE_CURRENT_BINARY_DIR}/fceux_git_info.cpp PROPERTY SKIP_AUTOGEN ON)
 
-if (APPLE)
+add_executable(  ${APP_NAME}  ${SOURCES} 
+   ${CMAKE_CURRENT_BINARY_DIR}/fceux_git_info.cpp)
 
-set(MACOSX_BUNDLE_ICON_FILE fceux.icns)
-set(APP_ICON  ${CMAKE_SOURCE_DIR}/fceux.icns )
-set_source_files_properties( ${APP_ICON} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources" )
-
-add_executable(  ${APP_NAME}  MACOSX_BUNDLE ${APP_ICON} ${SOURCES} ../resources.qrc 
-	${CMAKE_CURRENT_BINARY_DIR}/fceux_git_info.cpp)
-
-else()
-
-   if ( ${GTK} )
-      add_executable(  ${APP_NAME}  ${SOURCES} 
-   	   ${CMAKE_CURRENT_BINARY_DIR}/fceux_git_info.cpp)
-   else()
-      add_executable(  ${APP_NAME}  ${SOURCES} ../resources.qrc 
-   	   ${CMAKE_CURRENT_BINARY_DIR}/fceux_git_info.cpp)
-   endif()
-endif()
-
-if ( ${GTK} )
-   target_link_libraries( ${APP_NAME}  
+target_link_libraries( ${APP_NAME}  
    ${GTK3_LDFLAGS} ${X11_LDFLAGS}
    ${OPENGL_LDFLAGS}
  	${SDL2_LDFLAGS}
@@ -487,50 +345,3 @@ if ( ${GTK} )
 	${LUA_LDFLAGS}
  	${SYS_LIBS}
 )
-else()
-target_link_libraries( ${APP_NAME}  
-   ${Qt5Widgets_LIBRARIES}
-   ${Qt5OpenGL_LIBRARIES}
-   ${OPENGL_LDFLAGS}
- 	${SDL2_LDFLAGS}
-	${MINIZIP_LDFLAGS} ${ZLIB_LIBRARIES}
-	${LUA_LDFLAGS}
- 	${SYS_LIBS}
-)
-endif()
-
-if (APPLE)
-
-install( TARGETS  ${APP_NAME}  
-	BUNDLE  DESTINATION  . COMPONENT Runtime 
-	RUNTIME  DESTINATION  bin COMPONENT Runtime )
-
-set( APPS  ${CMAKE_INSTALL_PREFIX}/${APP_NAME}.app)
-set( DIRS  ${CMAKE_BINARY_DIR} /usr/local/lib)
-
-message(STATUS APPS: ${APPS})
-message(STATUS DIRS: ${DIRS} )
-
-set(CPACK_PACKAGE_ICON ${CMAKE_SOURCE_DIR}/fceux.icns )
-set(CPACK_BUNDLE_ICON ${CMAKE_SOURCE_DIR}/fceux.icns )
-set(CPACK_GENERATOR "DRAGNDROP")
-include(CPACK)
-
-install( CODE "include(BundleUtilities) 
-	fixup_bundle( \"${APPS}\" \"\" \"${DIRS}\") "
-	COMPONENT Runtime
-	)
-
-else(APPLE)
-
-install( TARGETS  ${APP_NAME}  
-	RUNTIME  DESTINATION  bin )
-
-install( FILES     ${CMAKE_CURRENT_SOURCE_DIR}/auxlib.lua                DESTINATION share/fceux/luaScripts  )
-install( DIRECTORY ${CMAKE_SOURCE_DIR}/output/.                          DESTINATION share/fceux  )
-install( FILES     ${CMAKE_SOURCE_DIR}/fceux.png                         DESTINATION share/pixmaps  )
-install( FILES     ${CMAKE_SOURCE_DIR}/fceux.desktop                     DESTINATION share/applications  )
-install( FILES     ${CMAKE_SOURCE_DIR}/documentation/fceux.6             DESTINATION share/man/man6  )
-install( FILES     ${CMAKE_SOURCE_DIR}/documentation/fceux-net-server.6  DESTINATION share/man/man6  )
-
-endif(APPLE)
